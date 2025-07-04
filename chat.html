@@ -21,6 +21,16 @@
             position: relative;
             display: none;
         }
+        #loading {
+            max-width: 600px;
+            margin: 3em auto;
+            background: #fff;
+            border-radius: 21px;
+            box-shadow: 0 8px 38px #0002;
+            padding: 2em 1.5em 1.5em 1.5em;
+            text-align: center;
+            font-size: 1.2em;
+        }
         #logout {
             position: absolute; right: 1.5em; top: 1.5em;
             background: #f9fafb;
@@ -113,20 +123,27 @@
             transition: background .2s;
         }
         #send-form button:hover { background: linear-gradient(90deg, #3AD29F 0%, #4F8CFF 100%); }
+        #error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin-bottom: 1em;
+        }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(18px);}
             to { opacity: 1; transform: none; }
         }
         @media (max-width: 700px) {
-            #chat-container { max-width: 97vw; padding: 1em; }
+            #chat-container, #loading { max-width: 97vw; padding: 1em; }
             #messages { height: 45vw; min-height: 240px;}
         }
     </style>
 </head>
 <body>
+<div id="loading">Loading chat...</div>
 <div id="chat-container">
     <button id="logout">Logout</button>
     <h2>🌐 Global Chat</h2>
+    <div id="error-message"></div>
     <div id="messages"></div>
     <form id="send-form" autocomplete="off">
         <input type="text" id="msg" placeholder="Type a message..." autocomplete="off" required>
@@ -136,19 +153,40 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
 let currentUser = '';
+function showLoading(msg) {
+    document.getElementById('loading').style.display = '';
+    document.getElementById('chat-container').style.display = 'none';
+    document.getElementById('loading').textContent = msg;
+}
+function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('chat-container').style.display = '';
+}
+function showError(msg) {
+    document.getElementById('error-message').textContent = msg;
+    hideLoading();
+}
 async function checkAuth() {
-    const res = await fetch('/api/me');
-    if (res.ok) {
-        const { username } = await res.json();
-        currentUser = username;
-        document.getElementById('chat-container').style.display = '';
-        return username;
-    } else {
-        window.location = '/login';
+    showLoading("Loading chat...");
+    try {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+            const { username } = await res.json();
+            currentUser = username;
+            hideLoading();
+            return username;
+        } else {
+            showLoading("Not authenticated. Redirecting...");
+            setTimeout(() => { window.location = '/login'; }, 1200);
+            throw new Error("Not authenticated");
+        }
+    } catch (e) {
+        showLoading("Error connecting to server!");
+        setTimeout(() => { window.location = '/login'; }, 2000);
+        throw e;
     }
 }
 function userAvatar(username) {
-    // colored avatar with first letter
     const colors = ["#4F8CFF", "#3AD29F", "#FFA726", "#FF5C8D", "#6A7FDB", "#13C0B8"];
     let hash = 0;
     for (let ch of username) hash += ch.charCodeAt(0);
@@ -196,7 +234,9 @@ checkAuth().then(username => {
         await fetch('/api/logout', { method: 'POST' });
         window.location = '/login';
     };
+}).catch(err => {
+    showError("Could not authenticate or connect to chat.");
 });
 </script>
 </body>
-</html>
+    </html>
