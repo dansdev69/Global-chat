@@ -67,9 +67,9 @@
 <script>
 document.getElementById('signup-form').onsubmit = async function(e) {
     e.preventDefault();
-    const username = signup_form.username.value.trim();
-    const password = signup_form.password.value.trim();
-    const remember = signup_form.remember.checked;
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const remember = document.getElementById('remember').checked;
     const res = await fetch('/api/signup', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -79,7 +79,7 @@ document.getElementById('signup-form').onsubmit = async function(e) {
     if (data.success) {
         window.location = '/';
     } else {
-        error.textContent = data.error || 'Sign up failed.';
+        document.getElementById('error').textContent = data.error || 'Sign up failed.';
     }
 };
 </script>
